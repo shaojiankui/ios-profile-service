@@ -27,6 +27,7 @@ openssl rsa -in temp.key -out temp.pem
 openssl x509 -in tmp.crt -out tmp.pem
 
 # 运行:
+### 首先删除根目录下所有pem文件,因为pem是脚本动态生成的自签名证书
 ### 进入到项目根目录(所有的证书都是脚本自动生成的自签名证书) 线上环境用非自签名的证书即可.
 ruby profile-service.rb
 
