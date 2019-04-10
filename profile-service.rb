@@ -44,7 +44,9 @@ $:.unshift(File.dirname(__FILE__) + "/uuidtools/lib")
 require 'uuidtools'
 
 # explicitly set this to host ip or name if more than one interface exists
-@@address = ENV['HOSTNAME']
+@@address = "AUTOMATIC"
+
+puts(@@address);
 
 def local_ip
     # turn off reverse DNS resolution temporarily
@@ -474,7 +476,7 @@ world.mount_proc("/enroll") { |req, res|
 }
 
 world.mount_proc("/profile") { |req, res|
-
+    puts("get profile");
     # verify CMS blob, but don't check signer certificate
     p7sign = OpenSSL::PKCS7.new(req.body)
     store = OpenSSL::X509::Store.new
