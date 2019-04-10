@@ -167,7 +167,7 @@ def profile_service_payload(request, challenge)
     payload['PayloadDescription'] = "Install this profile to enroll for secure access to ACME Inc."
 
     payload_content = Hash.new
-    payload_content['URL'] = "http://" + service_address(request) + "/profile"
+    payload_content['URL'] = "https://" + service_address(request) + "/profile"
     payload_content['DeviceAttributes'] = [
         "UDID", 
         "VERSION"
@@ -479,10 +479,10 @@ world.mount_proc("/enroll") { |req, res|
     res['Content-Type'] = "application/x-apple-aspen-config"
     configuration = profile_service_payload(req, "signed-auth-token")
 
-    res.body = configuration
-    # signed_profile = OpenSSL::PKCS7.sign($ssl_cert, $ssl_key, 
-    #         configuration, [], OpenSSL::PKCS7::BINARY)
-    # res.body = signed_profile.to_der
+    # res.body = configuration
+    signed_profile = OpenSSL::PKCS7.sign($ssl_cert, $ssl_key, 
+            configuration, [], OpenSSL::PKCS7::BINARY)
+    res.body = signed_profile.to_der
 
 }
 
