@@ -1,22 +1,13 @@
-GIT
-  remote: https://github.com/ruby/openssl
-  revision: 18ec883d6daaedbf32c66ca4ae6e41b66d0eeca4
-  specs:
-    openssl (2.1.2)
-      ipaddr
-
 GEM
   remote: https://gems.ruby-china.com/
   specs:
-    ipaddr (1.2.2)
     webrick (1.4.2)
 
 PLATFORMS
   ruby
 
 DEPENDENCIES
-  openssl!
   webrick
 
 BUNDLED WITH
-   1.17.2
+   1.16.6

@@ -44,9 +44,9 @@ $:.unshift(File.dirname(__FILE__) + "/uuidtools/lib")
 require 'uuidtools'
 
 # explicitly set this to host ip or name if more than one interface exists
-@@address = "AUTOMATIC"
+$address = "AUTOMATIC"
 
-puts(@@address);
+puts($address);
 
 def local_ip
     # turn off reverse DNS resolution temporarily
@@ -61,27 +61,27 @@ ensure
 end
 
 
-@@rsa_key_size = 2048
+$rsa_key_size = 2048
 
-@@root_cert_file = "ca_cert.pem"
-@@root_cert = nil
-@@root_key_file = "ca_private.pem"
-@@root_key = nil
+$root_cert_file = "ca_cert.pem"
+$root_cert = nil
+$root_key_file = "ca_private.pem"
+$root_key = nil
 
-@@serial_file = "serial"
-@@serial = 100
+$serial_file = "serial"
+$serial = 100
 
-@@ssl_key_file = "ssl_private.pem"
-@@ssl_key = nil
-@@ssl_cert_file = "ssl_cert.pem"
-@@ssl_cert = nil
+$ssl_key_file = "ssl_private.pem"
+$ssl_key = nil
+$ssl_cert_file = "ssl_cert.pem"
+$ssl_cert = nil
 
-@@ra_key_file = "ra_private.pem"
-@@ra_key = nil
-@@ra_cert_file = "ra_cert.pem"
-@@ra_cert = nil
+$ra_key_file = "ra_private.pem"
+$ra_key = nil
+$ra_cert_file = "ra_cert.pem"
+$ra_cert = nil
 
-@@issued_first_profile = Set.new
+$issued_first_profile = Set.new
 
 def issue_cert(dn, key, serial, not_before, not_after, extensions, issuer, issuer_key, digest)
     cert = OpenSSL::X509::Certificate.new
@@ -107,11 +107,11 @@ end
 
 def issueCert(req, validdays)
     req = OpenSSL::X509::Request.new(req)
-    cert = issue_cert(req.subject, req.public_key, @@serial, Time.now, Time.now+(86400*validdays), 
+    cert = issue_cert(req.subject, req.public_key, $serial, Time.now, Time.now+(86400*validdays), 
         [ ["keyUsage","digitalSignature,keyEncipherment",true] ],
-        @@root_cert, @@root_key, OpenSSL::Digest::SHA1.new)
-    @@serial += 1
-    File.open(@@serial_file, "w") { |f| f.write @@serial.to_s }
+        $root_cert, $root_key, OpenSSL::Digest::SHA1.new)
+    $serial += 1
+    File.open($serial_file, "w") { |f| f.write $serial.to_s }
     puts("请求证书");
     cert
 end
@@ -167,7 +167,7 @@ def profile_service_payload(request, challenge)
     payload['PayloadDescription'] = "Install this profile to enroll for secure access to ACME Inc."
 
     payload_content = Hash.new
-    payload_content['URL'] = "https://" + service_address(request) + "/profile"
+    payload_content['URL'] = "http://" + service_address(request) + "/profile"
     payload_content['DeviceAttributes'] = [
         "UDID", 
         "VERSION"
@@ -185,6 +185,7 @@ def profile_service_payload(request, challenge)
     end
 
     payload['PayloadContent'] = payload_content
+    puts(payload);
     Plist::Emit.dump(payload)
 end
 
@@ -210,7 +211,7 @@ def scep_cert_payload(request, purpose, challenge)
     if (!challenge.empty?)
         payload_content['Challenge'] = challenge
     end
-    payload_content['Keysize'] = @@rsa_key_size
+    payload_content['Keysize'] = $rsa_key_size
     payload_content['Key Type'] = "RSA"
     payload_content['Key Usage'] = 5 # digital signature (1) | key encipherment (4)
     # NOTE: MS SCEP server will only issue signature or encryption, not both
@@ -220,7 +221,7 @@ def scep_cert_payload(request, purpose, challenge)
     # that the phone downloads over HTTPS during enrollment.
 =begin
     # Disabled until the following is fixed: <rdar://problem/7172187> SCEP various fixes
-    payload_content['CAFingerprint'] = StringIO.new(OpenSSL::Digest::SHA1.new(@@root_cert.to_der).digest)
+    payload_content['CAFingerprint'] = StringIO.new(OpenSSL::Digest::SHA1.new($root_cert.to_der).digest)
 =end
 
     payload['PayloadContent'] = payload_content;
@@ -344,9 +345,9 @@ end
 
 def init
 
-    if @@address == "AUTOMATIC"
-        @@address = local_ip
-        print "*** detected address #{@@address} ***\n"
+    if $address == "AUTOMATIC"
+        $address = local_ip
+        print "*** detected address #{$address} ***\n"
     end
 
     ca_cert_ok = false
@@ -354,18 +355,21 @@ def init
     ssl_cert_ok = false
     
     begin
-        @@root_key = OpenSSL::PKey::RSA.new(File.read(@@root_key_file))
-        @@root_cert = OpenSSL::X509::Certificate.new(File.read(@@root_cert_file))
-        @@serial = File.read(@@serial_file).to_i
+        $root_key = OpenSSL::PKey::RSA.new(File.read($root_key_file))
+        $root_cert = OpenSSL::X509::Certificate.new(File.read($root_cert_file))
+        $serial = File.read($serial_file).to_i
         ca_cert_ok = true
-        @@ra_key = OpenSSL::PKey::RSA.new(File.read(@@ra_key_file))
-        @@ra_cert = OpenSSL::X509::Certificate.new(File.read(@@ra_cert_file))
+        $ra_key = OpenSSL::PKey::RSA.new(File.read($ra_key_file))
+        $ra_cert = OpenSSL::X509::Certificate.new(File.read($ra_cert_file))
         ra_cert_ok = true
-        @@ssl_key = OpenSSL::PKey::RSA.new(File.read(@@ssl_key_file))
-        @@ssl_cert = OpenSSL::X509::Certificate.new(File.read(@@ssl_cert_file))
-        @@ssl_cert.extensions.each { |e,ssl_cert_ok| 
-            e.value == "DNS:#{@@address}" && ssl_cert_ok = true
+        $ssl_key = OpenSSL::PKey::RSA.new(File.read($ssl_key_file))
+        $ssl_cert = OpenSSL::X509::Certificate.new(File.read($ssl_cert_file))
+        $ssl_cert.extensions.each { |e,ssl_cert_ok| 
+            e.value == "DNS:#{$address}" && ssl_cert_ok = true
         }
+        ssl_cert_ok = true
+
+        print "*** 如果服务器地址变更 要重新生成ssl证书 ***\n"
         if !ssl_cert_ok
             print "*** server address changed; issuing new ssl certificate ***\n"
             raise
@@ -373,46 +377,51 @@ def init
     rescue
         if !ca_cert_ok
         then
-            @@root_key = OpenSSL::PKey::RSA.new(@@rsa_key_size)
-            @@root_cert = issue_cert( OpenSSL::X509::Name.parse(
+            $root_key = OpenSSL::PKey::RSA.new($rsa_key_size)
+            $root_cert = issue_cert( OpenSSL::X509::Name.parse(
                 "/O=None/CN=ACME Root CA (#{UUIDTools::UUID.random_create().to_s})"),
-                @@root_key, 1, Time.now, Time.now+(86400*365), 
+                $root_key, 1, Time.now, Time.now+(86400*365), 
                 [ ["basicConstraints","CA:TRUE",true],
                 ["keyUsage","Digital Signature,keyCertSign,cRLSign",true] ],
                 nil, nil, OpenSSL::Digest::SHA1.new)
-            @@serial = 100
+            $serial = 100
 
-            File.open(@@root_key_file, "w") { |f| f.write @@root_key.to_pem }
-            File.open(@@root_cert_file, "w") { |f| f.write @@root_cert.to_pem }
-            File.open(@@serial_file, "w") { |f| f.write @@serial.to_s }
+            File.open($root_key_file, "w") { |f| f.write $root_key.to_pem }
+            File.open($root_cert_file, "w") { |f| f.write $root_cert.to_pem }
+            File.open($serial_file, "w") { |f| f.write $serial.to_s }
         end
         
         if !ra_cert_ok
         then
-            @@ra_key = OpenSSL::PKey::RSA.new(@@rsa_key_size)
-            @@ra_cert = issue_cert( OpenSSL::X509::Name.parse(
+            $ra_key = OpenSSL::PKey::RSA.new($rsa_key_size)
+            $ra_cert = issue_cert( OpenSSL::X509::Name.parse(
                 "/O=None/CN=ACME SCEP RA"),
-                @@ra_key, @@serial, Time.now, Time.now+(86400*365), 
+                $ra_key, $serial, Time.now, Time.now+(86400*365), 
                 [ ["basicConstraints","CA:TRUE",true],
                 ["keyUsage","Digital Signature,keyEncipherment",true] ],
-                @@root_cert, @@root_key, OpenSSL::Digest::SHA1.new)
-            @@serial += 1
-            File.open(@@ra_key_file, "w") { |f| f.write @@ra_key.to_pem }
-            File.open(@@ra_cert_file, "w") { |f| f.write @@ra_cert.to_pem }
+                $root_cert, $root_key, OpenSSL::Digest::SHA1.new)
+            $serial += 1
+            File.open($ra_key_file, "w") { |f| f.write $ra_key.to_pem }
+            File.open($ra_cert_file, "w") { |f| f.write $ra_cert.to_pem }
         end
         
-        @@ssl_key = OpenSSL::PKey::RSA.new(@@rsa_key_size)
-        @@ssl_cert = issue_cert( OpenSSL::X509::Name.parse("/O=None/CN=ACME Profile Service"),
-            @@ssl_key, @@serial, Time.now, Time.now+(86400*365), 
-            [   
-                ["keyUsage","Digital Signature",true] ,
-                ["subjectAltName", "DNS:" + @@address, true]
-            ],
-            @@root_cert, @@root_key, OpenSSL::Digest::SHA1.new)
-        @@serial += 1
-        File.open(@@serial_file, "w") { |f| f.write @@serial.to_s }
-        File.open(@@ssl_key_file, "w") { |f| f.write @@ssl_key.to_pem }
-        File.open(@@ssl_cert_file, "w") { |f| f.write @@ssl_cert.to_pem }
+        if !ssl_cert_ok
+        then
+            puts("ssl cert  not ok")
+            $ssl_key = OpenSSL::PKey::RSA.new($rsa_key_size)
+            $ssl_cert = issue_cert( OpenSSL::X509::Name.parse("/O=None/CN=ACME Profile Service"),
+                $ssl_key, $serial, Time.now, Time.now+(86400*365), 
+                [   
+                    ["keyUsage","Digital Signature",true] ,
+                    ["subjectAltName", "DNS:" + $address, true]
+                ],
+                $root_cert, $root_key, OpenSSL::Digest::SHA1.new)
+        end
+
+        $serial += 1
+        File.open($serial_file, "w") { |f| f.write $serial.to_s }
+        File.open($ssl_key_file, "w") { |f| f.write $ssl_key.to_pem }
+        File.open($ssl_cert_file, "w") { |f| f.write $ssl_cert.to_pem }
     end
 end
 
@@ -433,8 +442,8 @@ world = WEBrick::HTTPServer.new(
   :DocumentRoot    => Dir::pwd + "/htdocs",
   :SSLEnable       => true,
   :SSLVerifyClient => OpenSSL::SSL::VERIFY_NONE,
-  :SSLCertificate  => @@ssl_cert,
-  :SSLPrivateKey   => @@ssl_key
+  :SSLCertificate  => $ssl_cert,
+  :SSLPrivateKey   => $ssl_key
 )
 
 world.mount_proc("/") { |req, res|
@@ -459,7 +468,7 @@ WELCOME_MESSAGE
 
 world.mount_proc("/CA") { |req, res|
     res['Content-Type'] = "application/x-x509-ca-cert"
-    res.body = @@root_cert.to_der
+    res.body = $root_cert.to_der
 }
 
 world.mount_proc("/enroll") { |req, res|
@@ -469,9 +478,11 @@ world.mount_proc("/enroll") { |req, res|
 
     res['Content-Type'] = "application/x-apple-aspen-config"
     configuration = profile_service_payload(req, "signed-auth-token")
-    signed_profile = OpenSSL::PKCS7.sign(@@ssl_cert, @@ssl_key, 
-            configuration, [], OpenSSL::PKCS7::BINARY)
-    res.body = signed_profile.to_der
+
+    res.body = configuration
+    # signed_profile = OpenSSL::PKCS7.sign($ssl_cert, $ssl_key, 
+    #         configuration, [], OpenSSL::PKCS7::BINARY)
+    # res.body = signed_profile.to_der
 
 }
 
@@ -485,15 +496,15 @@ world.mount_proc("/profile") { |req, res|
     
     # this should be checking whether the signer is a cert we issued
     # 
-    if (signers[0].issuer.to_s == @@root_cert.subject.to_s)
+    if (signers[0].issuer.to_s == $root_cert.subject.to_s)
         print "Request from cert with serial #{signers[0].serial}"
-            " seen previously: #{@@issued_first_profile.include?(signers[0].serial.to_s)}"
-            " (profiles issued to #{@@issued_first_profile.to_a}) \n"
-        if (@@issued_first_profile.include?(signers[0].serial.to_s))
+            " seen previously: #{$issued_first_profile.include?(signers[0].serial.to_s)}"
+            " (profiles issued to #{$issued_first_profile.to_a}) \n"
+        if ($issued_first_profile.include?(signers[0].serial.to_s))
           res.set_redirect(WEBrick::HTTPStatus::MovedPermanently, "/enroll")
             print res
         else
-            @@issued_first_profile.add(signers[0].serial.to_s)
+            $issued_first_profile.add(signers[0].serial.to_s)
             payload = client_cert_configuration_payload(req)
                         # vpn_configuration_payload(req)
                         
@@ -524,7 +535,7 @@ world.mount_proc("/profile") { |req, res|
 		# or a profile specifically for this device
 		res['Content-Type'] = "application/x-apple-aspen-config"
     
-        signed_profile = OpenSSL::PKCS7.sign(@@ssl_cert, @@ssl_key, 
+        signed_profile = OpenSSL::PKCS7.sign($ssl_cert, $ssl_key, 
             configuration, [], OpenSSL::PKCS7::BINARY)
         res.body = signed_profile.to_der
         File.open("profile.der", "w") { |f| f.write signed_profile.to_der }
@@ -546,7 +557,7 @@ world.mount_proc("/scep"){ |req, res|
     res['Content-Type'] = "application/x-x509-ca-ra-cert"
     #scep_certs = OpenSSL::PKCS7.new()
     #scep_certs.type="signed"
-    #scep_certs.certificates=[@@root_cert, @@ra_cert]
+    #scep_certs.certificates=[$root_cert, $ra_cert]
 	scep_certs = Sequence.new([
 	  OpenSSL::ASN1::ObjectId.new('1.2.840.113549.1.7.2'),
 	  ASN1Data.new([
@@ -558,8 +569,8 @@ world.mount_proc("/scep"){ |req, res|
 			OpenSSL::ASN1::ObjectId.new('1.2.840.113549.1.7.1')
 		  ]),
 		  ASN1Data.new([
-			decode(@@root_cert.to_der),
-			decode(@@ra_cert.to_der)
+			decode($root_cert.to_der),
+			decode($ra_cert.to_der)
 		  ], 0, :CONTEXT_SPECIFIC),
 
 
@@ -585,7 +596,7 @@ world.mount_proc("/scep"){ |req, res|
         p7sign.verify(nil, store, nil, OpenSSL::PKCS7::NOVERIFY)
         signers = p7sign.signers
         p7enc = OpenSSL::PKCS7.new(p7sign.data)
-        csr = p7enc.decrypt(@@ra_key, @@ra_cert)
+        csr = p7enc.decrypt($ra_key, $ra_cert)
         cert = issueCert(csr, 1)
         #degenerate_pkcs7 = OpenSSL::PKCS7.new()
         #degenerate_pkcs7.type="signed"
@@ -614,7 +625,7 @@ world.mount_proc("/scep"){ |req, res|
 		])
 		enc_cert = OpenSSL::PKCS7.encrypt(p7sign.certificates, degenerate_pkcs7.to_der,
             OpenSSL::Cipher::Cipher::new("des-ede3-cbc"), OpenSSL::PKCS7::BINARY)
-        reply = OpenSSL::PKCS7.sign(@@ra_cert, @@ra_key, enc_cert.to_der, [], OpenSSL::PKCS7::BINARY)
+        reply = OpenSSL::PKCS7.sign($ra_cert, $ra_key, enc_cert.to_der, [], OpenSSL::PKCS7::BINARY)
         res['Content-Type'] = "application/x-pki-message"
         res.body = reply.to_der
        end
@@ -627,10 +638,10 @@ secret = WEBrick::HTTPServer.new(
   :Port            => 4443,
   :DocumentRoot    => Dir::pwd,
   :SSLEnable       => true,
-  :SSLCertificate  => @@ssl_cert,
-  :SSLPrivateKey   => @@ssl_key,
+  :SSLCertificate  => $ssl_cert,
+  :SSLPrivateKey   => $ssl_key,
   :SSLVerifyClient => OpenSSL::SSL:: VERIFY_PEER|OpenSSL::SSL::VERIFY_FAIL_IF_NO_PEER_CERT,
-  :SSLClientCA     => @@root_cert,
+  :SSLClientCA     => $root_cert,
   :SSLCertName     => nil # name for auto-gen
 #  :SSLVerifyDepth       => nil,
 #  :SSLVerifyCallback    => nil,   # custom verification
