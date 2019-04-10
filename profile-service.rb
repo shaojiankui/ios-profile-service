@@ -488,6 +488,8 @@ world.mount_proc("/enroll") { |req, res|
 
 world.mount_proc("/profile") { |req, res|
     puts("get profile");
+    puts(req.body);
+
     # verify CMS blob, but don't check signer certificate
     p7sign = OpenSSL::PKCS7.new(req.body)
     store = OpenSSL::X509::Store.new
@@ -508,17 +510,18 @@ world.mount_proc("/profile") { |req, res|
             payload = client_cert_configuration_payload(req)
                         # vpn_configuration_payload(req)
                         
-            #File.open("payload", "w") { |f| f.write payload }
+            # File.open("payload", "w") { |f| f.write payload }
             encrypted_profile = OpenSSL::PKCS7.encrypt(p7sign.certificates,
                 payload, OpenSSL::Cipher::Cipher::new("des-ede3-cbc"), 
                 OpenSSL::PKCS7::BINARY)
             configuration = configuration_payload(req, encrypted_profile.to_der)
         end
     else
-        #File.open("signeddata", "w") { |f| f.write p7sign.data }
+        # File.open("signeddata", "w") { |f| f.write p7sign.data }
         device_attributes = Plist::parse_xml(p7sign.data)
         #print device_attributes
-        
+        puts("device_attributes:");
+        puts(device_attributes);
 =begin
         # Limit issuing of profiles to one device and validate challenge
         if device_attributes['UDID'] == "213cee5cd11778bee2cd1cea624bcc0ab813d235" &&

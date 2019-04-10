@@ -1,7 +1,9 @@
 # profile-service
 iOS Profile Service, Based on Apple's Over-the-Air Profile Delivery and Configuration article.
 
-https://developer.apple.com/library/ios/documentation/NetworkingInternet/Conceptual/iPhoneOTAConfiguration/Introduction/Introduction.html
+官方文档:https://developer.apple.com/library/ios/documentation/NetworkingInternet/Conceptual/iPhoneOTAConfiguration/Introduction/Introduction.html
+
+通过Safari浏览器获取iOS设备UDID(设备唯一标识符) http://www.skyfox.org/safari-ios-device-udid.html
 
 # 配置:
 ### 0.使用breww或者rvm安装ruby,macos自带ruby不好用.我安的是2.6.0.  2.4.0 Gemfile中不用解开openssl注释,因为2.6.0.  2.4.0中自带openssl模块
@@ -36,6 +38,8 @@ ruby profile-service.rb
 手机访问https://ip:8443 即可
 
 点击ca安装下自签名的根证书.
+
+然后去通用 关于本机 证书信任设置 中信任这个根证书
 
 点击enroll 用户名密码 apple apple
 
